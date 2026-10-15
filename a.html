@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petualangan Rimba: Ular Tangga Bahasa Arab - Materi Al-'Unwan (Kelas 7)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --font-game: 'Fredoka', 'Inter', sans-serif;
+      --font-arabic: 'Amiri', serif;
+    }
+    body {
+      font-family: var(--font-game);
+      background: radial-gradient(circle at top, #15803d, #14532d, #052e16);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .arabic-text {
+      font-family: var(--font-arabic);
+      direction: rtl;
+    }
+    /* Jungle textured borders & shadows */
+    .jungle-panel {
+      background: rgba(255, 255, 255, 0.96);
+      border: 4px solid #15803d;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+      border-radius: 1.5rem;
+    }
+    .board-cell {
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+      position: relative;
+    }
+    .board-cell:hover {
+      transform: scale(1.03);
+      z-index: 10;
+    }
+    /* 3D Dice styling */
+    .dice-scene {
+      perspective: 600px;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto;
+    }
+    .dice-cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+    .dice-face {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background: white;
+      border: 3px solid #166534;
+      border-radius: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      padding: 10px;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.15);
+    }
+    .dot {
+      background: #dc2626;
+      border-radius: 50%;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+      justify-self: center;
+      align-self: center;
+      width: 14px;
+      height: 14px;
+    }
+    .dice-face:nth-child(1) .dot { background: #e11d48; width: 18px; height: 18px; }
+    .face-1 { transform: rotateY(0deg) translateZ(40px); }
+    .face-6 { transform: rotateY(180deg) translateZ(40px); }
+    .face-2 { transform: rotateY(90deg) translateZ(40px); }
+    .face-5 { transform: rotateY(-90deg) translateZ(40px); }
+    .face-3 { transform: rotateX(90deg) translateZ(40px); }
+    .face-4 { transform: rotateX(-90deg) translateZ(40px); }
+
+    /* Pulsing animations */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-glow {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    /* Token bounce */
+    @keyframes token-jump {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .active-token {
+      animation: token-jump 0.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+  <!-- Top Navigation & Jungle Header -->
+  <header class="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 bg-white/95 backdrop-blur rounded-2xl px-5 py-3 shadow-lg border-2 border-emerald-500 mb-3">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-lime-400 flex items-center justify-center text-3xl shadow-md">
+        🌴
+      </div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-emerald-900 tracking-wide flex items-center gap-2">
+          ULAR TANGGA RIMBA <span class="text-xs bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full font-bold">KLS 7</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-emerald-700 font-semibold arabic-text">الدَّرْسُ : العُنْوَانُ (Materi: Alamat & Bilangan)</p>
+      </div>
+    </div>
+
+    <!-- Active game info banner -->
+    <div id="gameNavStatus" class="hidden flex items-center gap-4 flex-wrap">
+      <div class="bg-emerald-100 text-emerald-900 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center gap-2 border border-emerald-300">
+        <span>Giliran:</span>
+        <span id="currentTurnBadge" class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-white font-extrabold shadow-sm bg-rose-500">
+          <span id="turnPlayerIcon">🦁</span> <span id="turnPlayerName">Pemain 1</span>
+        </span>
+      </div>
+      <button id="btnSoundToggle" onclick="toggleMute()" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-bold border border-amber-300 transition flex items-center gap-1.5 shadow-sm">
+        <span id="soundIcon">🔊</span> <span id="soundLabel">Audio: Aktif</span>
+      </button>
+      <button onclick="confirmResetGame()" class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-xs font-bold border border-red-300 transition flex items-center gap-1">
+        🔄 Ulang Permainan
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto flex flex-col justify-center items-center relative">
+    
+    <!-- SCREEN 1: Setup / Pemilihan Pemain -->
+    <div id="setupScreen" class="w-full max-w-xl jungle-panel p-6 sm:p-8 text-center my-auto transition-all">
+      <div class="inline-block p-4 bg-emerald-100 rounded-3xl mb-4 border-2 border-emerald-400 shadow-inner">
+        <span class="text-6xl">🐍🎲🧗</span>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-black text-emerald-900 mb-2">Game Edukasi Bahasa Arab</h2>
+      <p class="text-gray-600 mb-6 text-sm sm:text-base leading-relaxed">
+        Jelajahi rimba belantara, jawab tantangan kuis seputar alamat <span class="font-bold text-emerald-700 arabic-text">(العُنْوَان)</span>, naik tangga bila cerdas dan waspadai perangkap ular bila salah!
+      </p>
+
+      <div class="bg-emerald-50/80 p-5 rounded-2xl border border-emerald-200 mb-6">
+        <label class="block text-emerald-900 font-bold mb-3 text-base sm:text-lg">
+          Pilih Jumlah Pemain (2 - 6 Siswa):
+        </label>
+        <div class="grid grid-cols-5 gap-2 sm:gap-3 max-w-md mx-auto" id="playerCountSelector">
+          <button onclick="selectPlayerCount(2)" class="player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-500 bg-emerald-600 text-white shadow-md transition transform active:scale-95" data-count="2">2</button>
+          <button onclick="selectPlayerCount(3)" class="player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition transform active:scale-95" data-count="3">3</button>
+          <button onclick="selectPlayerCount(4)" class="player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition transform active:scale-95" data-count="4">4</button>
+          <button onclick="selectPlayerCount(5)" class="player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition transform active:scale-95" data-count="5">5</button>
+          <button onclick="selectPlayerCount(6)" class="player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition transform active:scale-95" data-count="6">6</button>
+        </div>
+      </div>
+
+      <!-- Player Name Customization Preview -->
+      <div id="playerNamesContainer" class="space-y-2 mb-6 text-left max-h-48 overflow-y-auto px-1">
+        <!-- Dynamically injected -->
+      </div>
+
+      <!-- Quick Rule Legend -->
+      <div class="bg-amber-50 rounded-xl p-3 border border-amber-300 mb-6 text-xs text-amber-900 text-left grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🪜✨</span>
+          <span><strong>Kotak Ular & Tangga:</strong> Benar naik tangga, salah tergelincir ular!</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🌿🛡️</span>
+          <span><strong>Kotak Biasa:</strong> Benar aman di tempat, salah mundur 1 langkah.</span>
+        </div>
+      </div>
+
+      <button id="btnStartGame" onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-emerald-600 via-green-500 to-lime-600 hover:from-emerald-700 hover:to-lime-700 text-white font-black text-xl rounded-2xl shadow-xl transform active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+        <span>MULAI PERMAINAN</span>
+        <span>🚀</span>
+      </button>
+    </div>
+
+    <!-- SCREEN 2: Main Game Board Area -->
+    <div id="gamePlayScreen" class="hidden w-full flex flex-col lg:flex-row gap-4 items-start justify-center">
+      
+      <!-- Left / Top: The 30-Cell Snakes & Ladders Board -->
+      <div class="w-full lg:w-[68%] xl:w-[72%] bg-emerald-950/40 p-2 sm:p-4 rounded-3xl border-4 border-amber-400 shadow-2xl relative">
+        
+        <!-- Board Grid (5 rows x 6 cols = 30 cells) -->
+        <div id="boardGrid" class="grid grid-cols-6 gap-1.5 sm:gap-2.5 aspect-[6/5] sm:aspect-[6/5] w-full">
+          <!-- Cells 1 - 30 populated via JS in boustrophedon order -->
+        </div>
+
+        <!-- Overlaid SVG path layer for dynamic visual snakes & ladders links -->
+        <svg id="boardConnectors" class="pointer-events-none absolute inset-0 w-full h-full p-2 sm:p-4 z-20"></svg>
+      </div>
+
+      <!-- Right / Bottom: Player Dashboard & Digital Interactive Dice -->
+      <div class="w-full lg:w-[32%] xl:w-[28%] flex flex-col gap-3">
+        
+        <!-- Dice & Action Control Card -->
+        <div class="jungle-panel p-4 text-center">
+          <h3 class="text-xs uppercase tracking-widest text-emerald-800 font-extrabold mb-2">Area Kocok Dadu</h3>
+          
+          <div class="dice-scene my-2 cursor-pointer" onclick="handleRollDice()" title="Klik untuk melempar dadu!">
+            <div id="diceCube" class="dice-cube face-1">
+              <!-- Face 1 -->
+              <div class="dice-face face-1">
+                <div></div><div></div><div></div>
+                <div></div><div class="dot"></div><div></div>
+                <div></div><div></div><div></div>
+              </div>
+              <!-- Face 2 -->
+              <div class="dice-face face-2">
+                <div class="dot"></div><div></div><div></div>
+                <div></div><div></div><div></div>
+                <div></div><div></div><div class="dot"></div>
+              </div>
+              <!-- Face 3 -->
+              <div class="dice-face face-3">
+                <div class="dot"></div><div></div><div></div>
+                <div></div><div class="dot"></div><div></div>
+                <div></div><div></div><div class="dot"></div>
+              </div>
+              <!-- Face 4 -->
+              <div class="dice-face face-4">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div></div><div></div><div></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+              <!-- Face 5 -->
+              <div class="dice-face face-5">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div></div><div class="dot"></div><div></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+              <!-- Face 6 -->
+              <div class="dice-face face-6">
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+                <div class="dot"></div><div></div><div class="dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 flex flex-col items-center gap-1">
+            <span id="diceValueText" class="text-sm font-bold text-gray-600">Klik dadu atau tombol di bawah!</span>
+            <button id="btnRollDice" onclick="handleRollDice()" class="w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-lg rounded-xl shadow-lg transform active:scale-95 transition flex items-center justify-center gap-2">
+              <span>🎲</span>
+              <span id="btnRollText">LEMPAR DADU</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Players Live Standings & Legend -->
+        <div class="jungle-panel p-4 flex-1">
+          <div class="flex items-center justify-between border-b pb-2 mb-2">
+            <h3 class="text-xs uppercase tracking-widest text-emerald-800 font-extrabold">Posisi Pion Pemain</h3>
+            <span class="text-xs text-gray-500 font-bold">Target: Kotak 30</span>
+          </div>
+
+          <div id="playerListStandings" class="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Board Legend Reminder -->
+          <div class="mt-3 pt-3 border-t border-gray-200 text-[11px] text-gray-600 space-y-1">
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-4 rounded-md bg-amber-400 border border-amber-600 inline-flex items-center justify-center text-[10px]">🪜</span>
+              <span><strong>12 Kotak Ular & Tangga:</strong> Punya peluang lompat tinggi / jatuh.</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="w-4 h-4 rounded-md bg-emerald-200 border border-emerald-400 inline-flex items-center justify-center text-[10px]">📖</span>
+              <span><strong>Kotak Reguler:</strong> Benar tetap, salah mundur 1 langkah.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: Question Pop-up -->
+  <div id="questionModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-2xl w-full border-4 border-emerald-500 shadow-2xl overflow-hidden transform transition-all animate-in fade-in zoom-in duration-300">
+      
+      <!-- Question Header -->
+      <div id="modalHeaderBg" class="bg-gradient-to-r from-emerald-600 to-green-700 px-6 py-4 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="modalPlayerAvatar" class="w-10 h-10 rounded-full bg-white text-emerald-700 flex items-center justify-center text-xl shadow">
+            🦁
+          </div>
+          <div>
+            <div class="text-xs text-emerald-200 font-bold uppercase tracking-wider">Tantangan Petak <span id="modalCellNum" class="text-white underline font-black">#12</span></div>
+            <h4 id="modalPlayerTurnTitle" class="text-lg font-black leading-tight">Giliran Ahmad</h4>
+          </div>
+        </div>
+        <div id="cellTypeBadge" class="bg-amber-400 text-amber-950 text-xs px-3 py-1 rounded-full font-black flex items-center gap-1 shadow">
+          🪜🐍 Ular & Tangga!
+        </div>
+      </div>
+
+      <!-- Question Body -->
+      <div class="p-6 sm:p-8">
+        
+        <!-- Arabic Prompt Box -->
+        <div class="bg-emerald-50/70 border-2 border-emerald-200 rounded-2xl p-4 sm:p-5 text-center mb-5">
+          <span class="text-xs uppercase font-extrabold text-emerald-700 tracking-wider block mb-1">Materi: Al-'Unwan (Alamat)</span>
+          <p id="arabicQuestionText" class="arabic-text text-2xl sm:text-3xl font-bold text-gray-900 my-2 leading-relaxed">
+            مَا رَقْمُ بَيْتِكَ ؟
+          </p>
+          <p id="latinQuestionSub" class="text-sm sm:text-base text-gray-700 font-medium mt-1">
+            (Apa arti kalimat di atas?)
+          </p>
+        </div>
+
+        <!-- Form container (Dynamically switched between Multiple Choice, True/False, Short Answer) -->
+        <div id="answersContainer" class="space-y-3">
+          <!-- Filled by JS -->
+        </div>
+
+        <!-- Short feedback alert box -->
+        <div id="feedbackAlert" class="mt-5 p-4 rounded-xl font-bold text-center hidden"></div>
+
+        <!-- Next / Action Button inside Modal -->
+        <div class="mt-6 flex justify-end gap-3">
+          <button id="btnSubmitAnswer" onclick="checkCurrentAnswer()" class="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-lg transition">
+            Jawab Sekarang ✅
+          </button>
+          <button id="btnContinueTurn" onclick="proceedTurnAfterFeedback()" class="hidden w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-lg transition">
+            Lanjutkan Langkah ➔
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Victory Screen -->
+  <div id="victoryModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full border-4 border-yellow-400 shadow-2xl p-6 sm:p-8 text-center relative overflow-hidden">
+      <div class="absolute -top-10 -left-10 w-32 h-32 bg-yellow-300 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+      <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-300 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
+
+      <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-amber-400 to-yellow-200 border-4 border-yellow-500 flex items-center justify-center text-5xl shadow-xl mb-4 animate-bounce">
+        🏆
+      </div>
+
+      <span class="text-sm uppercase tracking-widest text-amber-600 font-black">MABRUK! SELAMAT!</span>
+      <h2 id="winnerNameHeadline" class="text-3xl sm:text-4xl font-black text-emerald-900 mt-1 mb-2">
+        Pemain 1 Menang!
+      </h2>
+      <p class="text-gray-600 text-sm sm:text-base mb-6">
+        Berhasil menaklukkan rimba dan menguasai materi <strong>العنوان (Al-’Unwan)</strong> hingga petak nomor 30!
+      </p>
+
+      <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 mb-6">
+        <p class="text-emerald-800 font-bold arabic-text text-xl">
+          أَلْفُ مَبْرُوكٍ عَلَى الفَوْزِ الرَّائِعِ !
+        </p>
+        <p class="text-xs text-amber-800 mt-1">"Selamat atas kemenangan gemilang!"</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button onclick="restartGame()" class="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          <span>🔄</span> Main Lagi
+        </button>
+        <button onclick="finishGameSession()" class="flex-1 py-3.5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-extrabold rounded-xl shadow transition">
+          Selesai Permainan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom In-game Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-4 right-4 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-sm font-bold flex items-center gap-2 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <span id="toastIcon">ℹ️</span>
+    <span id="toastText">Info</span>
+  </div>
+
+  <script>
+    /* =====================================================================
+       AUDIO SYNTHESIZER (Pure Web Audio API - Tanpa file audio eksternal)
+       ===================================================================== */
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      if (isMuted) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        if (type === 'dice') {
+          // Noise clack for dice rolling
+          for (let i = 0; i < 4; i++) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150 + Math.random() * 200, now + i * 0.08);
+            gain.gain.setValueAtTime(0.2, now + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.08 + 0.06);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.08);
+            osc.stop(now + i * 0.08 + 0.06);
+          }
+        } else if (type === 'step') {
+          // Pop sound for steps
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(450, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'correct') {
+          // Success chime chord (C - E - G)
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.25, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.45);
+          });
+        } else if (type === 'wrong') {
+          // Low buzz for wrong answer
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(140, now + 0.35);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'ladder') {
+          // Upward rising sweep
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(300, now);
+          osc.frequency.exponentialRampToValueAtTime(1100, now + 0.5);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'snake') {
+          // Downward slide
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.6);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.6);
+        } else if (type === 'win') {
+          // Fanfare
+          const notes = [523.25, 523.25, 523.25, 659.25, 783.99, 1046.50];
+          const times = [0, 0.12, 0.24, 0.36, 0.55, 0.75];
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + times[idx]);
+            gain.gain.setValueAtTime(0.3, now + times[idx]);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + times[idx] + 0.4);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + times[idx]);
+            osc.stop(now + times[idx] + 0.45);
+          });
+        }
+      } catch (e) {
+        console.warn("Audio Context warning:", e);
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      document.getElementById('soundIcon').innerText = isMuted ? '🔇' : '🔊';
+      document.getElementById('soundLabel').innerText = isMuted ? 'Audio: Bisu' : 'Audio: Aktif';
+      showToast(isMuted ? 'Suara dinonaktifkan' : 'Suara aktif', '🔊');
+    }
+
+    /* =====================================================================
+       PLAYER & THEME CONFIGURATION (2 - 6 Pemain)
+       ===================================================================== */
+    const PLAYER_AVATARS = [
+      { name: "Pemain 1 (Singa)", icon: "🦁", color: "#ef4444", bgClass: "bg-red-500", borderClass: "border-red-600" },
+      { name: "Pemain 2 (Gajah)", icon: "🐘", color: "#3b82f6", bgClass: "bg-blue-500", borderClass: "border-blue-600" },
+      { name: "Pemain 3 (Monyet)", icon: "🐒", color: "#f59e0b", bgClass: "bg-amber-500", borderClass: "border-amber-600" },
+      { name: "Pemain 4 (Kancil)", icon: "🦌", color: "#10b981", bgClass: "bg-emerald-500", borderClass: "border-emerald-600" },
+      { name: "Pemain 5 (Harimau)", icon: "🐯", color: "#8b5cf6", bgClass: "bg-purple-500", borderClass: "border-purple-600" },
+      { name: "Pemain 6 (Zebra)", icon: "🦓", color: "#ec4899", bgClass: "bg-pink-500", borderClass: "border-pink-600" }
+    ];
+
+    let selectedPlayerCount = 2;
+    let players = [];
+    let currentPlayerIndex = 0;
+    let isDiceRolling = false;
+    let pendingMove = null;
+
+    /* =====================================================================
+       30 SOAL BAHASA ARAB KELAS 7 - MATERI: العنوان (Al-'Unwan) hal. 76-99
+       Mencakup: Kosakata Rumah, Jalan, Kota, Nomor Telepon, Bilangan 1-100,
+       dan percakapan tanya jawab alamat.
+       Format: Pilihan Ganda (MC), Benar/Salah (TF), Isian Singkat (TEXT).
+       ===================================================================== */
+    const QUESTIONS_DB = [
+      {
+        cell: 1,
+        type: "MC",
+        arabic: "مَا مَعْنَى كَلِمَةِ «العُنْوَانُ» بِالإِنْدُوْنِيْسِيَّةِ ؟",
+        sub: "Apa arti kata 'العُنْوَانُ' dalam bahasa Indonesia?",
+        options: ["A. Nomor", "B. Alamat", "C. Telepon", "D. Rumah"],
+        answerIndex: 1,
+        explain: "«العُنْوَانُ» artinya adalah 'Alamat'."
+      },
+      {
+        cell: 2,
+        type: "MC",
+        arabic: "«بَيْتٌ» مَعْنَاهَا فِي اللُّغَةِ الإِنْدُوْنِيْسِيَّةِ ...",
+        sub: "Arti kata 'بَيْتٌ' adalah...",
+        options: ["A. Sekolah", "B. Jalan", "C. Rumah", "D. Kamar"],
+        answerIndex: 2,
+        explain: "«بَيْتٌ» artinya adalah 'Rumah'."
+      },
+      {
+        cell: 3,
+        type: "TF",
+        arabic: "«شَارِعٌ» مَعْنَاهَا مَدْرَسَةٌ (Sekolah)",
+        sub: "Pernyataan di atas: Benar (صَحِيح) atau Salah (خَطَأ) ?",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 1,
+        explain: "Salah! «شَارِعٌ» artinya adalah Jalan, bukan sekolah (مَدْرَسَة)."
+      },
+      {
+        cell: 4,
+        type: "MC",
+        arabic: "كَلِمَةُ «رَقْمٌ» تَعْنِي ...",
+        sub: "Arti kata 'رَقْمٌ' adalah...",
+        options: ["A. Nomor / Angka", "B. Kota", "C. Desa", "D. Nama"],
+        answerIndex: 0,
+        explain: "«رَقْمٌ» artinya adalah Nomor atau Angka."
+      },
+      {
+        cell: 5,
+        type: "MC",
+        arabic: "مَا هُوَ الرَّقْمُ «خَمْسَةٌ» بِالأَرْقَامِ ؟",
+        sub: "Angka berapakah 'خَمْسَةٌ' dalam lambang angka?",
+        options: ["A. 3", "B. 4", "C. 5", "D. 6"],
+        answerIndex: 2,
+        explain: "«خَمْسَةٌ» artinya adalah angka 5 (٥)."
+      },
+      {
+        cell: 6,
+        type: "TEXT",
+        arabic: "مَا مَعْنَى «هَاتِفٌ» ؟",
+        sub: "Tuliskan arti kata 'هَاتِفٌ' (Alat komunikasi):",
+        accepted: ["telepon", "hp", "pesawat telepon", "telephone"],
+        explain: "«هَاتِفٌ» artinya adalah Telepon."
+      },
+      {
+        cell: 7,
+        type: "MC",
+        arabic: "أَيْنَ عُنْوَانُكَ ؟ ... عُنْوَانِي فِي شَارِعِ سُوْدِيْرْمَان رَقْمُ ٧",
+        sub: "Kata tanya 'أَيْنَ' digunakan untuk menanyakan...",
+        options: ["A. Kapan", "B. Di mana", "C. Siapa", "D. Berapa"],
+        answerIndex: 1,
+        explain: "Kata tanya «أَيْنَ» berarti 'Di mana'."
+      },
+      {
+        cell: 8,
+        type: "MC",
+        arabic: "عَدَدُ «سَبْعَةٌ» فِي اللُّغَةِ العَرَبِيَّةِ يُكْتَبُ ...",
+        sub: "Lambang angka Arab untuk 'سَبْعَةٌ' (tujuh) adalah...",
+        options: ["A. ٦", "B. ٧", "C. ٨", "D. ٩"],
+        answerIndex: 1,
+        explain: "Angka 7 dalam tulisan Arab adalah ٧."
+      },
+      {
+        cell: 9,
+        type: "TF",
+        arabic: "«مَدِيْنَةٌ» تَعْنِي كَوْكَبٌ (Bintang)",
+        sub: "Apakah arti 'مَدِيْنَةٌ' adalah Bintang?",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 1,
+        explain: "Salah! «مَدِيْنَةٌ» artinya adalah Kota."
+      },
+      {
+        cell: 10,
+        type: "MC",
+        arabic: "«قَرْيَةٌ» مَعْنَاهَا ...",
+        sub: "Lawan kata atau pasangan dari kota, 'قَرْيَةٌ' berarti...",
+        options: ["A. Desa", "B. Gunung", "C. Laut", "D. Lapangan"],
+        answerIndex: 0,
+        explain: "«قَرْيَةٌ» artinya adalah Desa atau Kampung."
+      },
+      {
+        cell: 11,
+        type: "MC",
+        arabic: "مَا رَقْمُ بَيْتِكَ ؟ رَقْمُ بَيْتِي ... (9)",
+        sub: "Lengkapi dengan bahasa Arab angka 9:",
+        options: ["A. تِسْعَةٌ", "B. عَشَرَةٌ", "C. ثَمَانِيَةٌ", "D. سِتَّةٌ"],
+        answerIndex: 0,
+        explain: "Angka 9 adalah «تِسْعَةٌ»."
+      },
+      {
+        cell: 12,
+        type: "MC",
+        arabic: "«جَوَّالٌ» كَلِمَةٌ أُخْرَى تَعْنِي ...",
+        sub: "Kata 'جَوَّالٌ' (Jawwalun) sinonim dari haatifun yang berarti...",
+        options: ["A. Sepeda Motor", "B. Handphone / Telepon Seluler", "C. Mobil", "D. Jam Tangan"],
+        answerIndex: 1,
+        explain: "«جَوَّالٌ» artinya Handphone / Telepon genggam."
+      },
+      {
+        cell: 13,
+        type: "TF",
+        arabic: "«وَاحِدٌ، اِثْنَانِ، ثَلَاثَةٌ، أَرْبَعَةٌ» تَرْتِيْبٌ صَحِيْحٌ لِلأَعْدَادِ",
+        sub: "Urutan angka di atas (1, 2, 3, 4) adalah urutan yang tepat.",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 0,
+        explain: "Benar! Urutannya: Wahidun (1), Itsnani (2), Tsalatsatun (3), Arba'atun (4)."
+      },
+      {
+        cell: 14,
+        type: "MC",
+        arabic: "مَا هُوَ العَدَدُ «عَشَرَةٌ» ؟",
+        sub: "Berapakah nilai dari bilangan 'عَشَرَةٌ' ?",
+        options: ["A. 1", "B. 5", "C. 10", "D. 20"],
+        answerIndex: 2,
+        explain: "«عَشَرَةٌ» bernilai 10."
+      },
+      {
+        cell: 15,
+        type: "TEXT",
+        arabic: "تَرْجِمْ إِلَى العَرَبِيَّةِ : «Nomor berapa» (.... مَا رَقْمُ)",
+        sub: "Tuliskan terjemahan 'Nomor rumahmu' (untuk laki-laki): بَيْتِكَ ....",
+        accepted: ["baytika", "baitika", "بيتك"],
+        explain: "Untuk laki-laki: مَا رَقْمُ بَيْتِكَ ؟"
+      },
+      {
+        cell: 16,
+        type: "MC",
+        arabic: "عُنْوَانُ المَدْرَسَةِ فِي شَارِعِ إِمَام بُوْنْجُوْل ... (No. 4)",
+        sub: "Pilihlah tulisan angka Arab untuk nomor 4:",
+        options: ["A. ٤", "B. ٧", "C. ٢", "D. ٨"],
+        answerIndex: 0,
+        explain: "Angka 4 dalam tulisan Arab adalah ٤."
+      },
+      {
+        cell: 17,
+        type: "MC",
+        arabic: "«قَرِيْبٌ مِنْ» ضِدُّهَا فِي المَعْنَى ...",
+        sub: "Lawan kata dari 'قَرِيْبٌ مِنْ' (Dekat dari) adalah...",
+        options: ["A. بَعِيْدٌ عَنْ (Jauh dari)", "B. كَبِيْرٌ (Besar)", "C. جَمِيْلٌ (Indah)", "D. نَظِيْفٌ (Bersih)"],
+        answerIndex: 0,
+        explain: "Lawan kata dekat (قريب) adalah jauh (بَعِيْدٌ عَنْ)."
+      },
+      {
+        cell: 18,
+        type: "TF",
+        arabic: "بَيْتِي قَرِيْبٌ مِنَ المَسْجِدِ تَعْنِي : Rumahku jauh dari masjid",
+        sub: "Apakah terjemahan kalimat di atas benar?",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 1,
+        explain: "Salah! «قَرِيْبٌ» artinya DEKAT, bukan jauh."
+      },
+      {
+        cell: 19,
+        type: "MC",
+        arabic: "مَا هُوَ العَدَدُ «صِفْرٌ» ؟",
+        sub: "Berapa nilai dari kata bilangan 'صِفْرٌ' ?",
+        options: ["A. Nol (0)", "B. Satu (1)", "C. Sepuluh (10)", "D. Seratus (100)"],
+        answerIndex: 0,
+        explain: "«صِفْرٌ» (Shifrun) artinya adalah angka Nol (٠)."
+      },
+      {
+        cell: 20,
+        type: "MC",
+        arabic: "عَدَدُ «خَمْسَةَ عَشَرَ» يَدُلُّ عَلَى الرَّقْمِ ...",
+        sub: "Bilangan belasan 'خَمْسَةَ عَشَرَ' bernilai...",
+        options: ["A. 12", "B. 15", "C. 25", "D. 50"],
+        answerIndex: 1,
+        explain: "«خَمْسَةَ عَشَرَ» adalah angka 15."
+      },
+      {
+        cell: 21,
+        type: "TEXT",
+        arabic: "كَمْ عَدَدُ «ثَلَاثُوْنَ» ؟",
+        sub: "Tuliskan dalam angka latin bilangan 'ثَلَاثُوْنَ':",
+        accepted: ["30", "tiga puluh"],
+        explain: "«ثَلَاثُوْنَ» artinya adalah 30."
+      },
+      {
+        cell: 22,
+        type: "MC",
+        arabic: "هَلْ بَيْتُكَ بَعِيْدٌ عَنِ المَدْرَسَةِ ؟ نَعَمْ، ...",
+        sub: "Jawaban yang tepat untuk melengkapi kalimat di atas adalah:",
+        options: [
+          "A. بَيْتِي بَعِيْدٌ عَنِ المَدْرَسَةِ",
+          "B. بَيْتِي قَرِيْبٌ مِنَ السُّوْقِ",
+          "C. مَدْرَسَتِي كَبِيْرَةٌ",
+          "D. اسْمِي فَارُوْق"
+        ],
+        answerIndex: 0,
+        explain: "Jika pertanyaannya 'Apakah rumahmu jauh...?', dan dijawab 'Na'am', maka: بَيْتِي بَعِيْدٌ عَنِ المَدْرَسَةِ."
+      },
+      {
+        cell: 23,
+        type: "MC",
+        arabic: "«مَسْجِدٌ» كَلِمَةٌ تَدُلُّ عَلَى ...",
+        sub: "Dalam denah alamat, kata 'مَسْجِدٌ' berarti...",
+        options: ["A. Rumah Sakit", "B. Masjid / Tempat Ibadah", "C. Pasar", "D. Kantor Pos"],
+        answerIndex: 1,
+        explain: "«مَسْجِدٌ» artinya Masjid."
+      },
+      {
+        cell: 24,
+        type: "TF",
+        arabic: "رَقْمُ الهَاتِفِ : (٠٨١٢٣٤) يُقْرَأُ مِنْ اليَمِيْنِ إِلَى اليَسَارِ أَوْ العَكْس",
+        sub: "Nomor telepon dalam bahasa Arab dibaca deretan angkanya per digit.",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 0,
+        explain: "Benar! Nomor telepon biasa dibaca digit per digit (contoh: shifr, tsamaniyah, wahid, isnan...)."
+      },
+      {
+        cell: 25,
+        type: "MC",
+        arabic: "«مُسْتَشْفَى» فِي مُفْرَدَاتِ العُنْوَانِ تَعْنِي ...",
+        sub: "Tempat rujukan kesehatan 'مُسْتَشْفَى' adalah...",
+        options: ["A. Apotek", "B. Rumah Sakit", "C. Laboratorium", "D. Kantor Polisi"],
+        answerIndex: 1,
+        explain: "«مُسْتَشْفَى» artinya Rumah Sakit."
+      },
+      {
+        cell: 26,
+        type: "MC",
+        arabic: "كَلِمَةُ «سُوْقٌ» مَعْنَاهَا ...",
+        sub: "Tempat perbelanjaan 'سُوْقٌ' berarti...",
+        options: ["A. Pasar", "B. Sekolah", "C. Stasiun", "D. Bandara"],
+        answerIndex: 0,
+        explain: "«سُوْقٌ» artinya Pasar."
+      },
+      {
+        cell: 27,
+        type: "TEXT",
+        arabic: "مَا هُوَ مُفْرَدُ كَلِمَةِ «بُيُوْتٌ» ؟",
+        sub: "Tuliskan bentuk tunggal (mufrod) dari kata jamak 'بُيُوْتٌ' (rumah-rumah):",
+        accepted: ["bait", "baitun", "bayt", "baytun", "بيت"],
+        explain: "Bentuk tunggalnya adalah «بَيْتٌ» (Baitun)."
+      },
+      {
+        cell: 28,
+        type: "MC",
+        arabic: "مَا هُوَ الرَّقْمُ «عِشْرُوْنَ» ؟",
+        sub: "Berapakah bilangan 'عِشْرُوْنَ' ?",
+        options: ["A. 10", "B. 20", "C. 30", "D. 40"],
+        answerIndex: 1,
+        explain: "«عِشْرُوْنَ» bernilai 20."
+      },
+      {
+        cell: 29,
+        type: "TF",
+        arabic: "«جَانِبَ» تَعْنِي فَوْقَ (Di atas)",
+        sub: "Apakah kata 'جَانِبَ' berarti Di atas?",
+        options: ["صَحِيح (Benar)", "خَطَأ (Salah)"],
+        answerIndex: 1,
+        explain: "Salah! «جَانِبَ» artinya Di samping / Di sebelah."
+      },
+      {
+        cell: 30,
+        type: "MC",
+        arabic: "أَيْنَ تَسْكُنُ ؟ ... أَسْكُنُ فِي ...",
+        sub: "Jawaban yang paling tepat untuk pertanyaan tempat tinggal adalah...",
+        options: [
+          "A. شَارِعِ أَحْمَد يَانِي",
+          "B. يَوْمِ الإِثْنَيْنِ",
+          "C. السَّاعَةِ السَّادِسَةِ",
+          "D. اللُّغَةِ العَرَبِيَّةِ"
+        ],
+        answerIndex: 0,
+        explain: "«أَسْكُنُ فِي شَارِعِ أَحْمَد يَانِي» artinya: 'Saya tinggal di jalan Ahmad Yani'."
+      }
+    ];
+
+    /* =====================================================================
+       12 KOTAK KHUSUS ULAR & TANGGA BERSAMAAN
+       Aturan:
+       - Benar -> Naik tangga menuju targetLadder
+       - Salah -> Turun digigit ular menuju targetSnake
+       ===================================================================== */
+    const DUAL_FEATURE_CELLS = {
+      4:  { ladder: 14, snake: 1,  name: "Petak 4: Tangga ke 14, Ular ke 1" },
+      6:  { ladder: 15, snake: 2,  name: "Petak 6: Tangga ke 15, Ular ke 2" },
+      8:  { ladder: 18, snake: 3,  name: "Petak 8: Tangga ke 18, Ular ke 3" },
+      11: { ladder: 21, snake: 5,  name: "Petak 11: Tangga ke 21, Ular ke 5" },
+      13: { ladder: 22, snake: 7,  name: "Petak 13: Tangga ke 22, Ular ke 7" },
+      15: { ladder: 24, snake: 9,  name: "Petak 15: Tangga ke 24, Ular ke 9" },
+      17: { ladder: 25, snake: 10, name: "Petak 17: Tangga ke 25, Ular ke 10" },
+      19: { ladder: 27, snake: 12, name: "Petak 19: Tangga ke 27, Ular ke 12" },
+      20: { ladder: 28, snake: 13, name: "Petak 20: Tangga ke 28, Ular ke 13" },
+      22: { ladder: 29, snake: 14, name: "Petak 22: Tangga ke 29, Ular ke 14" },
+      24: { ladder: 29, snake: 16, name: "Petak 24: Tangga ke 29, Ular ke 16" },
+      26: { ladder: 30, snake: 18, name: "Petak 26: Tangga ke 30, Ular ke 18" }
+    };
+
+    function selectPlayerCount(count) {
+      selectedPlayerCount = count;
+      document.querySelectorAll('.player-count-btn').forEach(btn => {
+        const val = parseInt(btn.getAttribute('data-count'));
+        if (val === count) {
+          btn.className = 'player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-500 bg-emerald-600 text-white shadow-md transition transform active:scale-95';
+        } else {
+          btn.className = 'player-count-btn py-2.5 rounded-xl font-extrabold text-base border-2 border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 transition transform active:scale-95';
+        }
+      });
+      renderPlayerNameInputs();
+      playSound('step');
+    }
+
+    function renderPlayerNameInputs() {
+      const cont = document.getElementById('playerNamesContainer');
+      cont.innerHTML = '';
+      for (let i = 0; i < selectedPlayerCount; i++) {
+        const defaultData = PLAYER_AVATARS[i];
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3 bg-white p-2 rounded-xl border border-emerald-200 shadow-sm';
+        row.innerHTML = `
+          <span class="w-8 h-8 rounded-lg ${defaultData.bgClass} text-white flex items-center justify-center text-lg font-bold shadow-sm">${defaultData.icon}</span>
+          <input type="text" id="playerNameInput_${i}" value="Siswa ${i + 1}" maxlength="14" class="flex-1 text-sm font-bold bg-transparent outline-none border-b border-dashed border-gray-300 focus:border-emerald-500 py-1" placeholder="Nama Siswa ${i+1}">
+        `;
+        cont.appendChild(row);
+      }
+    }
+
+    function startGame() {
+      initAudio();
+      players = [];
+      for (let i = 0; i < selectedPlayerCount; i++) {
+        const input = document.getElementById(`playerNameInput_${i}`);
+        const customName = input && input.value.trim() ? input.value.trim() : `Pemain ${i + 1}`;
+        players.push({
+          id: i,
+          name: customName,
+          icon: PLAYER_AVATARS[i].icon,
+          color: PLAYER_AVATARS[i].color,
+          bgClass: PLAYER_AVATARS[i].bgClass,
+          borderClass: PLAYER_AVATARS[i].borderClass,
+          position: 1, // Start on Cell 1
+          score: 0
+        });
+      }
+
+      currentPlayerIndex = 0;
+      isDiceRolling = false;
+      pendingMove = null;
+
+      document.getElementById('setupScreen').classList.add('hidden');
+      document.getElementById('gamePlayScreen').classList.remove('hidden');
+      document.getElementById('gameNavStatus').classList.remove('hidden');
+
+      buildBoardUI();
+      renderTokens();
+      updateStandingsList();
+      updateTurnIndicator();
+
+      playSound('correct');
+      showToast(`Permainan dimulai! Giliran ${players[0].name}`, players[0].icon);
+
+      // Re-draw connection lines after rendering
+      setTimeout(drawBoardOverlayLines, 300);
+      window.addEventListener('resize', drawBoardOverlayLines);
+    }
+
+    /*
+      Grid 5 baris x 6 kolom = 30 kotak
+      Boustrophedon snake pattern:
+      Baris 5 (atas):   25 26 27 28 29 30 (Kiri ke Kanan)
+      Baris 4:          24 23 22 21 20 19 (Kanan ke Kiri)
+      Baris 3:          13 14 15 16 17 18 (Kiri ke Kanan)
+      Baris 2:          12 11 10  9  8  7 (Kanan ke Kiri)
+      Baris 1 (bawah):   1  2  3  4  5  6 (Kiri ke Kanan)
+    */
+    function buildBoardUI() {
+      const grid = document.getElementById('boardGrid');
+      grid.innerHTML = '';
+
+      const rowsPattern = [
+        [25, 26, 27, 28, 29, 30],
+        [24, 23, 22, 21, 20, 19],
+        [13, 14, 15, 16, 17, 18],
+        [12, 11, 10,  9,  8,  7],
+        [ 1,  2,  3,  4,  5,  6]
+      ];
+
+      // Jungle color palette alternating
+      const cellColors = [
+        'bg-amber-100/90 border-amber-300 text-amber-950',
+        'bg-lime-100/90 border-lime-300 text-lime-950',
+        'bg-emerald-100/90 border-emerald-300 text-emerald-950',
+        'bg-yellow-100/90 border-yellow-300 text-yellow-950',
+        'bg-green-100/90 border-green-300 text-green-950'
+      ];
+
+      rowsPattern.forEach((rowNumbers, rowIdx) => {
+        rowNumbers.forEach((cellNum, colIdx) => {
+          const isDual = DUAL_FEATURE_CELLS[cellNum] !== undefined;
+          const isGoal = cellNum === 30;
+          const isStart = cellNum === 1;
+          const colorClass = cellColors[(cellNum + rowIdx) % cellColors.length];
+
+          const cellEl = document.createElement('div');
+          cellEl.id = `cell-${cellNum}`;
+          cellEl.className = `board-cell ${colorClass} rounded-2xl border-2 sm:border-3 p-1 sm:p-2 flex flex-col justify-between shadow-sm relative overflow-hidden`;
+
+          // Header: Big Cell Number & Arabic Number
+          const numHeader = document.createElement('div');
+          numHeader.className = 'flex items-center justify-between w-full leading-none';
+          numHeader.innerHTML = `
+            <span class="text-base sm:text-2xl font-black ${isGoal ? 'text-amber-600' : 'text-emerald-900'} drop-shadow-sm font-mono">${cellNum}</span>
+            <span class="text-xs sm:text-base font-bold text-gray-500 arabic-text">${toArabicDigits(cellNum)}</span>
+          `;
+          cellEl.appendChild(numHeader);
+
+          // Center Icon Badge: Dual Snake & Ladder OR Jungle Ornament
+          const centerBadge = document.createElement('div');
+          centerBadge.className = 'my-auto flex items-center justify-center flex-col text-center';
+
+          if (isGoal) {
+            centerBadge.innerHTML = `
+              <span class="text-2xl sm:text-4xl animate-bounce">🏆</span>
+              <span class="text-[9px] sm:text-xs font-black uppercase text-amber-700 bg-amber-200/90 px-1.5 py-0.5 rounded-full mt-0.5">FINISH</span>
+            `;
+          } else if (isStart) {
+            centerBadge.innerHTML = `
+              <span class="text-xl sm:text-3xl">🏕️</span>
+              <span class="text-[9px] sm:text-xs font-black text-emerald-700">START</span>
+            `;
+          } else if (isDual) {
+            const feature = DUAL_FEATURE_CELLS[cellNum];
+            centerBadge.innerHTML = `
+              <div class="flex items-center gap-1 bg-amber-300/80 border border-amber-500 px-1.5 py-0.5 rounded-lg shadow-inner">
+                <span class="text-sm sm:text-xl">🪜</span>
+                <span class="text-[10px] sm:text-xs font-bold text-emerald-800">▲${feature.ladder}</span>
+                <span class="text-sm sm:text-xl">🐍</span>
+                <span class="text-[10px] sm:text-xs font-bold text-red-700">▼${feature.snake}</span>
+              </div>
+            `;
+          } else {
+            // Regular Educational Question Box
+            const jungleIcons = ["🌴", "🌺", "🦜", "🍌", "🌿", "🐾", "🪵", "🍄"];
+            const icon = jungleIcons[cellNum % jungleIcons.length];
+            centerBadge.innerHTML = `
+              <span class="text-sm sm:text-2xl opacity-60">${icon}</span>
+              <span class="text-[9px] sm:text-[10px] font-semibold text-emerald-800/70 hidden sm:inline">سُؤَالٌ</span>
+            `;
+          }
+          cellEl.appendChild(centerBadge);
+
+          // Bottom slot for tokens
+          const tokenSlot = document.createElement('div');
+          tokenSlot.id = `tokenSlot-${cellNum}`;
+          tokenSlot.className = 'w-full flex items-center justify-center flex-wrap gap-1 min-h-[22px] sm:min-h-[30px] z-10';
+          cellEl.appendChild(tokenSlot);
+
+          grid.appendChild(cellEl);
+        });
+      });
+    }
+
+    // Helper: Arabic number converter (1 -> ١)
+    function toArabicDigits(num) {
+      const arabicDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+      return num.toString().split('').map(d => arabicDigits[d] || d).join('');
+    }
+
+    function drawBoardOverlayLines() {
+      const svg = document.getElementById('boardConnectors');
+      if (!svg) return;
+      svg.innerHTML = '';
+
+      const svgRect = svg.getBoundingClientRect();
+      if (svgRect.width === 0 || svgRect.height === 0) return;
+
+      // Draw subtle dashed lines indicating dual routes
+      Object.keys(DUAL_FEATURE_CELLS).forEach(fromCellKey => {
+        const fromCell = parseInt(fromCellKey);
+        const { ladder, snake } = DUAL_FEATURE_CELLS[fromCell];
+
+        const elFrom = document.getElementById(`cell-${fromCell}`);
+        const elLadder = document.getElementById(`cell-${ladder}`);
+        const elSnake = document.getElementById(`cell-${snake}`);
+
+        if (elFrom && elLadder) {
+          const rectFrom = elFrom.getBoundingClientRect();
+          const rectLadder = elLadder.getBoundingClientRect();
+
+          const x1 = rectFrom.left + rectFrom.width / 2 - svgRect.left;
+          const y1 = rectFrom.top + rectFrom.height / 2 - svgRect.top;
+          const x2 = rectLadder.left + rectLadder.width / 2 - svgRect.left;
+          const y2 = rectLadder.top + rectLadder.height / 2 - svgRect.top;
+
+          // Green Ladder line
+          const ladderLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          ladderLine.setAttribute("x1", x1);
+          ladderLine.setAttribute("y1", y1);
+          ladderLine.setAttribute("x2", x2);
+          ladderLine.setAttribute("y2", y2);
+          ladderLine.setAttribute("stroke", "#16a34a");
+          ladderLine.setAttribute("stroke-width", "3");
+          ladderLine.setAttribute("stroke-dasharray", "6,5");
+          ladderLine.setAttribute("stroke-opacity", "0.45");
+          ladderLine.setAttribute("stroke-linecap", "round");
+          svg.appendChild(ladderLine);
+        }
+
+        if (elFrom && elSnake) {
+          const rectFrom = elFrom.getBoundingClientRect();
+          const rectSnake = elSnake.getBoundingClientRect();
+
+          const x1 = rectFrom.left + rectFrom.width / 2 - svgRect.left;
+          const y1 = rectFrom.top + rectFrom.height / 2 - svgRect.top;
+          const x2 = rectSnake.left + rectSnake.width / 2 - svgRect.left;
+          const y2 = rectSnake.top + rectSnake.height / 2 - svgRect.top;
+
+          // Red Snake line
+          const snakeLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const cx = (x1 + x2) / 2 + (dy * 0.2);
+          const cy = (y1 + y2) / 2 - (dx * 0.2);
+          const d = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+
+          snakeLine.setAttribute("d", d);
+          snakeLine.setAttribute("fill", "none");
+          snakeLine.setAttribute("stroke", "#dc2626");
+          snakeLine.setAttribute("stroke-width", "3");
+          snakeLine.setAttribute("stroke-dasharray", "4,4");
+          snakeLine.setAttribute("stroke-opacity", "0.45");
+          snakeLine.setAttribute("stroke-linecap", "round");
+          svg.appendChild(snakeLine);
+        }
+      });
+    }
+
+    function renderTokens() {
+      // Clear token slots
+      for (let i = 1; i <= 30; i++) {
+        const slot = document.getElementById(`tokenSlot-${i}`);
+        if (slot) slot.innerHTML = '';
+      }
+
+      players.forEach((p, idx) => {
+        const slot = document.getElementById(`tokenSlot-${p.position}`);
+        if (!slot) return;
+
+        const token = document.createElement('div');
+        const isCurrent = idx === currentPlayerIndex;
+        token.className = `w-6 h-6 sm:w-8 sm:h-8 rounded-full ${p.bgClass} text-white flex items-center justify-center text-xs sm:text-base font-black shadow-md border-2 border-white transform transition-transform ${isCurrent ? 'active-token ring-4 ring-amber-400 z-20 scale-110' : 'opacity-90'}`;
+        token.title = `${p.name} (Petak ${p.position})`;
+        token.innerHTML = p.icon;
+        slot.appendChild(token);
+      });
+    }
+
+    function updateStandingsList() {
+      const cont = document.getElementById('playerListStandings');
+      cont.innerHTML = '';
+
+      // Clone & sort by position descending for standings
+      const sorted = [...players].sort((a, b) => b.position - a.position);
+
+      sorted.forEach((p, rank) => {
+        const isCurrent = p.id === currentPlayerIndex;
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between p-2 rounded-xl transition ${isCurrent ? 'bg-amber-100 border-2 border-amber-400 font-extrabold shadow-sm' : 'bg-gray-50 border border-gray-200'}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg ${p.bgClass} text-white flex items-center justify-center text-sm font-bold shadow-sm">${p.icon}</span>
+            <div class="leading-tight">
+              <span class="text-xs sm:text-sm text-gray-900 block ${isCurrent ? 'text-amber-950 font-black' : 'font-bold'}">${p.name} ${isCurrent ? '★' : ''}</span>
+              <span class="text-[10px] text-gray-500 font-semibold">Skor Benar: ${p.score || 0}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-bold text-gray-400">#${rank + 1}</span>
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-black shadow-sm">
+              Kotak ${p.position}
+            </span>
+          </div>
+        `;
+        cont.appendChild(row);
+      });
+    }
+
+    function updateTurnIndicator() {
+      const curr = players[currentPlayerIndex];
+      const badge = document.getElementById('currentTurnBadge');
+      const icon = document.getElementById('turnPlayerIcon');
+      const name = document.getElementById('turnPlayerName');
+
+      badge.className = `flex items-center gap-1.5 px-3 py-1 rounded-lg text-white font-extrabold shadow-sm ${curr.bgClass}`;
+      icon.innerText = curr.icon;
+      name.innerText = curr.name;
+
+      document.getElementById('btnRollText').innerText = `GILIRAN ${curr.name.toUpperCase()}`;
+    }
+
+    function handleRollDice() {
+      if (isDiceRolling) return;
+      initAudio();
+      isDiceRolling = true;
+      document.getElementById('btnRollDice').disabled = true;
+
+      const diceValue = Math.floor(Math.random() * 6) + 1;
+      const cube = document.getElementById('diceCube');
+
+      playSound('dice');
+
+      // Random tumbling rotations for 3D realism
+      const randomX = (Math.floor(Math.random() * 4) + 4) * 360;
+      const randomY = (Math.floor(Math.random() * 4) + 4) * 360;
+
+      // Final face orientation values
+      const faceTransforms = {
+        1: { x: 0,   y: 0 },
+        2: { x: 0,   y: -90 },
+        3: { x: -90, y: 0 },
+        4: { x: 90,  y: 0 },
+        5: { x: 0,   y: 90 },
+        6: { x: 0,   y: 180 }
+      };
+
+      const finalX = randomX + faceTransforms[diceValue].x;
+      const finalY = randomY + faceTransforms[diceValue].y;
+
+      cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
+      document.getElementById('diceValueText').innerText = "Mengocok dadu rimba...";
+
+      setTimeout(() => {
+        document.getElementById('diceValueText').innerHTML = `Dadu: <strong class="text-xl text-emerald-700">${diceValue}</strong>! Pion melangkah...`;
+        movePlayerStepByStep(diceValue);
+      }, 1200);
+    }
+
+    function movePlayerStepByStep(steps) {
+      const curr = players[currentPlayerIndex];
+      let stepsRemaining = steps;
+
+      function step() {
+        if (stepsRemaining > 0) {
+          if (curr.position < 30) {
+            curr.position++;
+            playSound('step');
+            renderTokens();
+            updateStandingsList();
+          }
+          stepsRemaining--;
+          setTimeout(step, 280);
+        } else {
+          // Finished steps: trigger cell educational event
+          isDiceRolling = false;
+          document.getElementById('btnRollDice').disabled = false;
+          handlePlayerLandedOnCell(curr.position);
+        }
+      }
+      step();
+    }
+
+    function handlePlayerLandedOnCell(cellNumber) {
+      const curr = players[currentPlayerIndex];
+
+      // Instant win if cell 30 reached directly
+      if (cellNumber >= 30) {
+        curr.position = 30;
+        renderTokens();
+        triggerVictory(curr);
+        return;
+      }
+
+      // Retrieve question corresponding to cell number (1 to 30)
+      const qIndex = (cellNumber - 1) % QUESTIONS_DB.length;
+      const qData = QUESTIONS_DB[qIndex];
+      const isDual = DUAL_FEATURE_CELLS[cellNumber] !== undefined;
+
+      openQuestionModal(curr, cellNumber, qData, isDual);
+    }
+
+    let currentModalQuestion = null;
+    let selectedAnswer = null;
+
+    function openQuestionModal(player, cellNumber, qData, isDual) {
+      currentModalQuestion = { player, cellNumber, qData, isDual };
+      selectedAnswer = null;
+
+      document.getElementById('modalPlayerAvatar').innerText = player.icon;
+      document.getElementById('modalPlayerTurnTitle').innerText = `Giliran: ${player.name}`;
+      document.getElementById('modalCellNum').innerText = `#${cellNumber}`;
+
+      const cellBadge = document.getElementById('cellTypeBadge');
+      if (isDual) {
+        const dualInfo = DUAL_FEATURE_CELLS[cellNumber];
+        cellBadge.className = 'bg-amber-400 text-amber-950 text-xs px-3 py-1 rounded-full font-black flex items-center gap-1 shadow animate-pulse';
+        cellBadge.innerHTML = `🪜 Tangga (#${dualInfo.ladder}) | 🐍 Ular (#${dualInfo.snake})`;
+      } else {
+        cellBadge.className = 'bg-emerald-200 text-emerald-900 text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1 shadow';
+        cellBadge.innerHTML = `🌿 Kotak Biasa (Benar: Aman, Salah: -1)`;
+      }
+
+      // Populate text
+      document.getElementById('arabicQuestionText').innerText = qData.arabic;
+      document.getElementById('latinQuestionSub').innerText = qData.sub;
+
+      // Populate inputs according to question type
+      const container = document.getElementById('answersContainer');
+      container.innerHTML = '';
+
+      if (qData.type === 'MC' || qData.type === 'TF') {
+        qData.options.forEach((optText, index) => {
+          const btn = document.createElement('button');
+          btn.className = 'answer-opt-btn w-full p-3.5 text-left rounded-xl border-2 border-emerald-300 bg-emerald-50/50 hover:bg-emerald-100 font-bold text-gray-800 transition flex items-center gap-3 active:scale-[0.99]';
+          btn.innerHTML = `
+            <span class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-black">${String.fromCharCode(65 + index)}</span>
+            <span class="flex-1">${optText}</span>
+          `;
+          btn.onclick = () => {
+            selectedAnswer = index;
+            document.querySelectorAll('.answer-opt-btn').forEach(b => {
+              b.className = 'answer-opt-btn w-full p-3.5 text-left rounded-xl border-2 border-emerald-300 bg-emerald-50/50 hover:bg-emerald-100 font-bold text-gray-800 transition flex items-center gap-3';
+            });
+            btn.className = 'answer-opt-btn w-full p-3.5 text-left rounded-xl border-2 border-emerald-600 bg-emerald-200 text-emerald-950 font-black transition flex items-center gap-3 shadow-md ring-2 ring-emerald-400';
+          };
+          container.appendChild(btn);
+        });
+      } else if (qData.type === 'TEXT') {
+        const inputDiv = document.createElement('div');
+        inputDiv.className = 'space-y-2';
+        inputDiv.innerHTML = `
+          <input type="text" id="shortAnswerInput" placeholder="Ketik jawaban singkat di sini..." class="w-full p-4 rounded-xl border-2 border-emerald-400 font-bold text-lg bg-white outline-none focus:ring-4 focus:ring-emerald-200">
+          <p class="text-xs text-gray-500 italic">*Huruf besar/kecil tidak berpengaruh.</p>
+        `;
+        container.appendChild(inputDiv);
+      }
+
+      // Reset feedback alert
+      const fb = document.getElementById('feedbackAlert');
+      fb.className = 'mt-5 p-4 rounded-xl font-bold text-center hidden';
+      fb.innerHTML = '';
+
+      // Reset modal buttons
+      document.getElementById('btnSubmitAnswer').classList.remove('hidden');
+      document.getElementById('btnContinueTurn').classList.add('hidden');
+
+      // Show modal
+      document.getElementById('questionModal').classList.remove('hidden');
+    }
+
+    function checkCurrentAnswer() {
+      if (!currentModalQuestion) return;
+      const { player, cellNumber, qData, isDual } = currentModalQuestion;
+      let isCorrect = false;
+
+      if (qData.type === 'MC' || qData.type === 'TF') {
+        if (selectedAnswer === null) {
+          showToast('Pilih salah satu jawaban terlebih dahulu!', '⚠️');
+          return;
+        }
+        isCorrect = selectedAnswer === qData.answerIndex;
+      } else if (qData.type === 'TEXT') {
+        const input = document.getElementById('shortAnswerInput');
+        const val = input ? input.value.trim().toLowerCase() : '';
+        if (!val) {
+          showToast('Ketikkan jawabanmu terlebih dahulu!', '⚠️');
+          return;
+        }
+        isCorrect = qData.accepted.some(acc => val.includes(acc.toLowerCase()));
+      }
+
+      // Disable answer buttons after checking
+      document.querySelectorAll('.answer-opt-btn').forEach(b => b.disabled = true);
+      const shortInput = document.getElementById('shortAnswerInput');
+      if (shortInput) shortInput.disabled = true;
+
+      document.getElementById('btnSubmitAnswer').classList.add('hidden');
+      document.getElementById('btnContinueTurn').classList.remove('hidden');
+
+      const fb = document.getElementById('feedbackAlert');
+      fb.classList.remove('hidden');
+
+      if (isCorrect) {
+        playSound('correct');
+        player.score = (player.score || 0) + 1;
+        
+        if (isDual) {
+          const target = DUAL_FEATURE_CELLS[cellNumber].ladder;
+          fb.className = 'mt-5 p-4 rounded-xl font-bold text-center bg-green-100 text-green-900 border-2 border-green-500 shadow';
+          fb.innerHTML = `
+            <div class="text-xl">🎉 MUMTAZ! JAWABAN BENAR!</div>
+            <div class="text-sm font-normal mt-1">${qData.explain}</div>
+            <div class="text-base font-black text-emerald-700 mt-2">🪜 Kamu berhasil naik tangga ke kotak <strong>#${target}</strong>!</div>
+          `;
+          pendingMove = { type: 'ladder', target };
+        } else {
+          fb.className = 'mt-5 p-4 rounded-xl font-bold text-center bg-green-100 text-green-900 border-2 border-green-500 shadow';
+          fb.innerHTML = `
+            <div class="text-xl">🎉 MUMTAZ! JAWABAN BENAR!</div>
+            <div class="text-sm font-normal mt-1">${qData.explain}</div>
+            <div class="text-sm font-black text-emerald-700 mt-2">🌿 Posisi aman! Pionmu tetap bertahan di kotak #${cellNumber}.</div>
+          `;
+          pendingMove = { type: 'stay', target: cellNumber };
+        }
+      } else {
+        playSound('wrong');
+
+        if (isDual) {
+          const target = DUAL_FEATURE_CELLS[cellNumber].snake;
+          fb.className = 'mt-5 p-4 rounded-xl font-bold text-center bg-red-100 text-red-900 border-2 border-red-500 shadow';
+          fb.innerHTML = `
+            <div class="text-xl">❌ SAYANG SEKALI, JAWABAN SALAH!</div>
+            <div class="text-sm font-normal mt-1">${qData.explain}</div>
+            <div class="text-base font-black text-red-700 mt-2">🐍 Ups! Terpeleset ular ke kotak <strong>#${target}</strong>!</div>
+          `;
+          pendingMove = { type: 'snake', target };
+        } else {
+          const target = Math.max(1, cellNumber - 1);
+          fb.className = 'mt-5 p-4 rounded-xl font-bold text-center bg-red-100 text-red-900 border-2 border-red-500 shadow';
+          fb.innerHTML = `
+            <div class="text-xl">❌ SAYANG SEKALI, JAWABAN SALAH!</div>
+            <div class="text-sm font-normal mt-1">${qData.explain}</div>
+            <div class="text-sm font-black text-red-700 mt-2">🌿 Aturan Kotak Biasa: Mundur 1 petak ke kotak <strong>#${target}</strong>!</div>
+          `;
+          pendingMove = { type: 'back', target };
+        }
+      }
+    }
+
+    function proceedTurnAfterFeedback() {
+      document.getElementById('questionModal').classList.add('hidden');
+      const curr = players[currentPlayerIndex];
+
+      if (pendingMove) {
+        const { type, target } = pendingMove;
+        
+        if (type === 'ladder') {
+          playSound('ladder');
+          showToast(`${curr.name} menaiki tangga ke petak ${target}!`, '🪜');
+          animateTokenTeleport(curr, target);
+        } else if (type === 'snake') {
+          playSound('snake');
+          showToast(`${curr.name} meluncur di ular ke petak ${target}!`, '🐍');
+          animateTokenTeleport(curr, target);
+        } else if (type === 'back') {
+          playSound('step');
+          showToast(`${curr.name} mundur 1 petak ke ${target}`, '↩️');
+          animateTokenTeleport(curr, target);
+        } else {
+          // Stay
+          finishTurnCycle();
+        }
+        pendingMove = null;
+      } else {
+        finishTurnCycle();
+      }
+    }
+
+    function animateTokenTeleport(player, targetCell) {
+      player.position = targetCell;
+      renderTokens();
+      updateStandingsList();
+
+      if (player.position >= 30) {
+        setTimeout(() => triggerVictory(player), 600);
+      } else {
+        setTimeout(finishTurnCycle, 600);
+      }
+    }
+
+    function finishTurnCycle() {
+      // Check win condition
+      if (players[currentPlayerIndex].position >= 30) {
+        triggerVictory(players[currentPlayerIndex]);
+        return;
+      }
+
+      // Switch to next player
+      currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+      updateTurnIndicator();
+      updateStandingsList();
+      renderTokens();
+
+      const nextPlayer = players[currentPlayerIndex];
+      showToast(`Sekarang giliran ${nextPlayer.name}!`, nextPlayer.icon);
+    }
+
+    function triggerVictory(winner) {
+      playSound('win');
+      
+      // Canvas confetti explosion
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 100,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 }
+          });
+          confetti({
+            particleCount: 100,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 }
+          });
+        }, 300);
+      }
+
+      document.getElementById('winnerNameHeadline').innerText = `🎉 ${winner.name} Menang!`;
+      document.getElementById('victoryModal').classList.remove('hidden');
+    }
+
+    function restartGame() {
+      document.getElementById('victoryModal').classList.add('hidden');
+      document.getElementById('gamePlayScreen').classList.add('hidden');
+      document.getElementById('gameNavStatus').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+      selectPlayerCount(selectedPlayerCount);
+    }
+
+    function confirmResetGame() {
+      // Direct custom modal-free confirmation
+      showToast('Permainan diulang dari petak awal!', '🔄');
+      players.forEach(p => { p.position = 1; p.score = 0; });
+      currentPlayerIndex = 0;
+      renderTokens();
+      updateStandingsList();
+      updateTurnIndicator();
+      playSound('correct');
+    }
+
+    function finishGameSession() {
+      document.getElementById('victoryModal').classList.add('hidden');
+      document.getElementById('gamePlayScreen').classList.add('hidden');
+      document.getElementById('gameNavStatus').classList.add('hidden');
+      document.getElementById('setupScreen').classList.remove('hidden');
+    }
+
+    let toastTimeout = null;
+    function showToast(text, icon = '🌴') {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastText').innerText = text;
+      document.getElementById('toastIcon').innerText = icon;
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3000);
+    }
+
+    // Initialize initial inputs on script load
+    window.onload = function() {
+      renderPlayerNameInputs();
+    };
+  </script>
+</body>
+</html>
